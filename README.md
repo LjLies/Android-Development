@@ -77,7 +77,7 @@ coding agents.
 | App | compileSdk | AGP | Result |
 |---|---|---|---|
 | Gadgetbridge (Codeberg, Oct 2026) | 37 (`android-37.0`) | 9.4.1 | Debug APK builds |
-| [WakeBridge](https://github.com/LuccoJ/WakeBridge) | 37 | 9.4.1 | APK builds, lint and Robolectric unit tests pass |
+| [WakeBridge](https://github.com/LjLies/WakeBridge) | 37 | 9.4.1 | APK builds, lint and Robolectric unit tests pass |
 
 Robolectric unit tests download their own Android framework jars from Maven Central at run time;
 see WakeBridge's README for pointing them at a mirror.
