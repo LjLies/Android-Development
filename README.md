@@ -49,6 +49,9 @@ through Google's public mirror, because Central rate-limits busy shared IPs (HTT
 
 ## Limitations
 
+- **Not byte-identical to Google-SDK builds**: the APKs work the same, but the compiled code
+  differs, so an app built with this SDK can't be an F-Droid reproducible build (see
+  [docs/release-signing.md](docs/release-signing.md#7-f-droid)).
 - **`java.*` is a desktop JDK's**, a superset of Android's. A call to a JDK-only method compiles
   but fails at runtime on the phone. Code that also builds against the real SDK is unaffected.
 - **API levels 21–37 only**, those Robolectric publishes, and only stable releases. The script
