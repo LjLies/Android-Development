@@ -151,13 +151,17 @@ Then:
 The signed APK is `app/build/outputs/apk/release/app-release.apk`. Without the two settings you
 get `app-release-unsigned.apk`, which phones refuse to install.
 
-Check which key signed an APK:
+Check which key signed an APK with `apksigner` (`sudo apt install apksigner`, or the one in your
+SDK's `build-tools` folder):
 
 ```bash
-keytool -printcert -jarfile app/build/outputs/apk/release/app-release.apk
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
 ```
 
-The `SHA256:` line is your key's fingerprint. Write it down: it's how you, app stores or users can
+(`keytool -printcert -jarfile` doesn't work here: it only reads the old JAR signature, which Gradle
+leaves out for apps whose `minSdk` is 24 or higher.)
+
+The `SHA-256 digest` line is your key's fingerprint. Write it down: it's how you, app stores or users can
 tell a genuine APK from a fake one.
 
 ## 4. Sign on GitHub Actions
