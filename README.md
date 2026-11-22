@@ -57,8 +57,17 @@ through Google's public mirror, because Central rate-limits busy shared IPs (HTT
   `core-lambda-stubs.jar` is empty.
 - **No platform-tools (`adb`)**: AGP warns that their license isn't accepted, then carries on.
 - **No emulator, system images, NDK or CMake**: no native code, and no instrumented tests.
+- **R8 release builds** (`isMinifyEnabled = true`) report hidden framework classes as missing;
+  add `-dontwarn android.**` to the app's ProGuard rules (see
+  [docs/release-signing.md](docs/release-signing.md#release-builds-with-the-open-sdk)).
 - **`build.prop` and layoutlib metadata are minimal**: fine for building, untested with
   Android Studio's layout preview.
+
+## Signing release builds
+
+[docs/release-signing.md](docs/release-signing.md): creating your own release key, signing with it
+locally and on GitHub Actions without it entering the repository, and keeping it away from cloud
+coding agents.
 
 ## Tested with
 
