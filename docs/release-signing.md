@@ -151,13 +151,17 @@ Then:
 The signed APK is `app/build/outputs/apk/release/app-release.apk`. Without the two settings you
 get `app-release-unsigned.apk`, which phones refuse to install.
 
-Check which key signed an APK:
+Check which key signed an APK with `apksigner` (`sudo apt install apksigner`, or the one in your
+SDK's `build-tools` folder):
 
 ```bash
-keytool -printcert -jarfile app/build/outputs/apk/release/app-release.apk
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
 ```
 
-The `SHA256:` line is your key's fingerprint. Write it down: it's how you, app stores or users can
+(`keytool -printcert -jarfile` doesn't work here: it only reads the old JAR signature, which Gradle
+leaves out for apps whose `minSdk` is 24 or higher.)
+
+The `SHA-256 digest` line is your key's fingerprint. Write it down: it's how you, app stores or users can
 tell a genuine APK from a fake one.
 
 ## 4. Sign on GitHub Actions
@@ -257,5 +261,60 @@ key, so on a given phone stick to either debug or release builds of an app.
 F-Droid builds apps from source and normally signs them with **its own** key. Your key then only
 matters for APKs you distribute yourself (GitHub releases, Obtainium), and the two versions can't
 update each other. To have F-Droid ship your signature instead, ask for reproducible builds when
-submitting: F-Droid checks that its build matches yours byte for byte and publishes your signed
-APK.
+submitting: F-Droid builds the app itself, copies the signature from your APK onto its unsigned
+build, and publishes your signed APK only if the result verifies, which needs the two builds to
+be identical apart from the signature.
+
+What that takes:
+
+- **Build with what F-Droid builds with.** F-Droid's build server compiles against Google's SDK
+  platform and build-tools, which it installs with its own
+  [sdkmanager](https://gitlab.com/fdroid/sdkmanager) from Google's servers, with Debian's JDK
+  (21 by default). The open SDK from this repository does **not** give identical APKs: its
+  `android.jar` has thousands of hidden classes and keeps hidden superclasses, so D8 and R8 output
+  differ. Install the same packages with F-Droid's tool, for example in a GitHub Actions workflow:
+
+  ```yaml
+      - name: Install the SDK with F-Droid's sdkmanager
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          pipx install sdkmanager==0.7.2
+          sdkmanager "platforms;android-35" "build-tools;34.0.0"
+  ```
+
+  with `ANDROID_HOME` set for the job, and the platform and build-tools versions your app's
+  `compileSdk` and Android Gradle Plugin use.
+- **No dependency metadata blob**, which is encrypted for Google, in `android { }`:
+
+  ```kotlin
+      dependenciesInfo {
+          includeInApk = false
+          includeInBundle = false
+      }
+  ```
+
+- **Check it yourself** with F-Droid's [apksigcopier](https://github.com/obfusk/apksigcopier),
+  against an unsigned build of the same commit (`./gradlew assembleRelease` without the key
+  settings):
+
+  ```bash
+  apksigcopier compare app-release.apk --unsigned app-release-unsigned.apk
+  ```
+
+  No output and exit status 0 means F-Droid's check would pass. APKs signed by the Android Gradle
+  Plugin, as set up above, pass it. F-Droid's docs warn about `apksigner` from build-tools 35 or
+  later, which only matters if you sign with that tool instead.
+
+F-Droid's [Reproducible Builds](https://f-droid.org/docs/Reproducible_Builds/) page lists other
+things that can make builds differ (baseline profiles, build paths, native code).
+
+### Readable crash traces
+
+R8 renames classes and methods in release builds, so crash traces read `a.b.c()`. For an open
+source app that hides nothing, so you can turn renaming off and keep line numbers, in
+`app/proguard-rules.pro`; shrinking and optimization stay on, and builds stay reproducible:
+
+```
+-dontobfuscate
+-keepattributes SourceFile,LineNumberTable
+```
